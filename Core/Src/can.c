@@ -22,17 +22,22 @@
 
 /* USER CODE BEGIN 0 */
 
-CAN_TxHeaderTypeDef TxHeader = {
-    .StdId = 0x446,
-    .IDE = CAN_ID_STD,
-    .RTR = CAN_RTR_DATA,
-    .DLC = 2};
+/* Private Includes */
 
-uint8_t TxData[8];
-uint32_t TxMailbox;
 
-CAN_RxHeaderTypeDef RxHeader;
-uint8_t RxData[8];
+#define TRANSMIT_DATA_LENGTH 2 //Sending just pin number for now e.g. "8"
+#define TRANSMIT_MSG_ID 0x103
+
+
+CAN_TxHeaderTypeDef transmit_header = {
+    .StdId = TRANSMIT_MSG_ID,    // your chosen 11-bit ID
+    .ExtId = 0x0000,                          // ignored in standard frame
+    .IDE   = CAN_ID_STD,                      // standard frame
+    .RTR   = CAN_RTR_DATA,                    // data frame, not remote
+    .DLC   = TRANSMIT_DATA_LENGTH  // payload length (0-8)
+};
+
+CAN_FilterTypeDef can_filter;
 
 /* USER CODE END 0 */
 
@@ -50,11 +55,11 @@ void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 16;
+  hcan.Init.Prescaler = 8;
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan.Init.TimeSeg1 = CAN_BS1_4TQ;
+  hcan.Init.TimeSeg2 = CAN_BS2_4TQ;
   hcan.Init.TimeTriggeredMode = DISABLE;
   hcan.Init.AutoBusOff = DISABLE;
   hcan.Init.AutoWakeUp = DISABLE;
@@ -66,7 +71,8 @@ void MX_CAN_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN_Init 2 */
-
+  HAL_CAN_ConfigFilter(&hcan, &can_filter);
+  HAL_CAN_Start(&hcan);
   /* USER CODE END CAN_Init 2 */
 
 }
@@ -130,5 +136,15 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 }
 
 /* USER CODE BEGIN 1 */
+/**
+ * @brief CAN message to transmit the pin getting shorted
+ */
+void CAN_tx_transmit_msg(int GPIO_pin) {
 
+
+  uint8_t transmit_pin[1] = { GPIO_pin };
+  uint32_t mailbox;
+
+  HAL_CAN_AddTxMessage(&hcan, &transmit_header, transmit_pin, &mailbox);
+}
 /* USER CODE END 1 */
